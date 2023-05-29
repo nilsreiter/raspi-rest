@@ -38,10 +38,10 @@ rotate = 1
 inreverse = True
 
 settings = {
-  SCROLL_DELAY: 0.05,
-  CONTRAST: 10,
-  STATE: TIME
-  C_SCROLL_DIRECTION: C_LTR
+    SCROLL_DELAY: 0.05,
+    CONTRAST: 10,
+    STATE: TIME,
+    C_SCROLL_DIRECTION: C_LTR
 }
 
 # Inititalisation
@@ -90,18 +90,23 @@ def show_message(device, command):
     
     scrollDirection = command.get(C_SCROLL_DIRECTION, settings[C_SCROLL_DIRECTION])
     
-    if scrollDirection = C_LTR:
-      pos = [32,0]
+    if scrollDirection == C_BTT:
+        pos = [0,8]
     else:
-      pos = [0,8]
+        pos = [32,0]
+
     
     def nextPos(pos, dir=C_LTR):
-      if dir == C_LTR:
-        return (pos[0]-1, pos[1])
-      else:
+      if dir == C_BTT:
         return (pos[0], pos[1]-1)
-    
-    for i in range(0, pixelLength+40):
+      else:
+        return (pos[0]-1, pos[1])
+
+    if scrollDirection == C_BTT:
+        maxIter = 17
+    else:
+        maxIter = pixelLength+40
+    for i in range(0, maxIter):
         with canvas(device) as draw:
             draw.text( pos, command[MESSAGE], fill=10, font=font)
         time.sleep(sd)
