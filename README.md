@@ -6,7 +6,7 @@ The basic idea for the server is to have two threads, and a queue of commands sh
 
 ## LED Matrix
 
-![The LED matrix showing the time](img/led_matrix.jpg)
+![The LED matrix showing the time](img/led_matrix.jpeg)
 
 If nothing happens, the LED matrix shows the time (can also be turned off entirely). In addition, the LED matrix is set as a notification service from home assistant, using [this integration](https://www.home-assistant.io/integrations/notify.rest/).
 
