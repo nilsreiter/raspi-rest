@@ -17,6 +17,7 @@ from luma.core.interface.serial import spi, noop
 from luma.core.legacy import show_message as show_luma_message
 from luma.core.legacy import text
 from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT
+from PIL import ImageFont
 
 # Constants
 SCROLL_DELAY = "scroll_delay"
@@ -53,6 +54,8 @@ serial = spi(port=0, device=0, gpio=noop())
 device = max7219(serial, cascaded=4, block_orientation=90,
                  rotate=0, blocks_arranged_in_reverse_order=True)
 
+font = ImageFont.truetype("Eight-Bit-Dragon.ttf", 8)
+
 # Control functions for the device
 def show_time(device, toggle):
     hours = datetime.now().strftime('%H')
@@ -60,6 +63,9 @@ def show_time(device, toggle):
     toggle = not toggle
     device.contrast(settings[CONTRAST])
     with canvas(device) as draw:
+        #draw.text((0,1), hours, fill=WHITE, font=font_437)
+        #draw.text((font_437.getlength(hours), 1), ":" if toggle else " ", fill=WHITE, font=font_437)
+        #draw.text((font_437.getlength(hours)+2,1), minutes, fill=WHITE, font=font_437)
         text(draw, (0, 1), hours, fill=WHITE, font=proportional(CP437_FONT))
         text(draw, (15, 1), ":" if toggle else " ", fill=WHITE, font=proportional(TINY_FONT))
         text(draw, (17, 1), minutes, fill=WHITE, font=proportional(CP437_FONT))
@@ -74,10 +80,19 @@ def show_message(device, command):
     sd = float(command.get(SCROLL_DELAY, settings[SCROLL_DELAY]))
     contrast = int(command.get(CONTRAST, settings[CONTRAST]))
     device.contrast(contrast)
-    show_luma_message(device, command[MESSAGE],
-         fill=WHITE,
-         font=proportional(CP437_FONT),
-         scroll_delay=sd)
+
+    pixelLength = int(fnt.getlength(command[MESSAGE]))
+    xpos = 32
+    for i in range(0, pixelLength+64):
+        with canvas(device) as draw:
+            draw.text( [xpos, 0], command[MESSAGE], fill=10, font=font)
+        time.sleep(sd)
+        xpos = xpos - 1
+    
+    #show_luma_message(device, command[MESSAGE],
+    #     fill=WHITE,
+    #     font=proportional(CP437_FONT),
+    #     scroll_delay=sd)
 
 def control_loop():
     toggle = False
@@ -106,9 +121,9 @@ def state_endpoint():
         for k in settings:
           if k == STATE and d.get(k, settings[k]) not in [TIME, OFF]:
             raise werkzeug.exceptions.BadRequest
-          if k == CONTRAST and ( d.get(k, settings[k]) < 0 or d.get(k, settings[k]) > 255)
+          if k == CONTRAST and ( d.get(k, settings[k]) < 0 or d.get(k, settings[k]) > 255):
             raise werkzeug.exceptions.BadRequest
-          if k == SCROLL_DELAY and ( d.get(k, settings[k]) < 0 or d.get(k, settings[k]) > 1)
+          if k == SCROLL_DELAY and ( d.get(k, settings[k]) < 0 or d.get(k, settings[k]) > 1):
             raise werkzeug.exceptions.BadRequest
           settings[k] = d.get(k, settings[k])
         statelock.release()
