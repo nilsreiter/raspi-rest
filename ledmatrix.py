@@ -61,8 +61,7 @@ def show_nothing(device):
     time.sleep(0.5)
 
 def show_message(device, command):
-    if "message" not in command.keys():
-      raise werkzeug.exceptions.BadRequest
+   
     sd = float(command.get("scroll_delay", default_scroll_delay))
     contrast = int(command.get("contrast", contrast_notification))
     device.contrast(contrast)
@@ -103,16 +102,16 @@ def state():
     else:
         return {"state": state }
 
-@app.route("/", methods=['POST'])
+@app.route("/message", methods=['POST'])
 def accept_message():
-    commands.put_nowait(request.get_json())
+    command = request.get_json()
+    if "message" not in command.keys():
+      raise werkzeug.exceptions.BadRequest
+    commands.put_nowait(command)
     return {"result": "ok"}
 
 
 if __name__ == "__main__":
-    statelock.acquire()
-    state = "time"
-    statelock.release()
     Thread(target=control_loop, daemon=True).start()
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
