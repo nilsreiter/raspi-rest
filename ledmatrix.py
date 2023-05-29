@@ -13,7 +13,8 @@ from threading import Thread, Lock
 from luma.led_matrix.device import max7219
 from luma.core.render import canvas
 from luma.core.interface.serial import spi, noop
-from luma.core.legacy import show_message, text
+from luma.core.legacy import show_message as show_luma_message
+from luma.core.legacy import text
 from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT
 
 # Settings
@@ -65,7 +66,7 @@ def show_message(device, command):
     sd = float(command.get("scroll_delay", default_scroll_delay))
     contrast = int(command.get("contrast", contrast_notification))
     device.contrast(contrast)
-    show_message(device, command["message"],
+    show_luma_message(device, command["message"],
          fill="white",
          font=proportional(CP437_FONT),
          scroll_delay=sd)
@@ -77,7 +78,7 @@ def control_loop():
         toggle = not toggle
         try:
             command = commands.get_nowait()
-            show_message(command)
+            show_message(device, command)
         except Empty:
             statelock.acquire()
             if state == "time":
@@ -109,10 +110,6 @@ def accept_message():
 
 
 if __name__ == "__main__":
-    show_message(device, "Hello World",
-                 fill="white",
-                 font=proportional(CP437_FONT),
-                 scroll_delay=0.01)
     statelock.acquire()
     state = "time"
     statelock.release()
