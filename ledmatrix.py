@@ -54,6 +54,7 @@ serial = spi(port=0, device=0, gpio=noop())
 device = max7219(serial, cascaded=4, block_orientation=90,
                  rotate=0, blocks_arranged_in_reverse_order=True)
 
+# Font from here: https://www.dafont.com/eight-bit-dragon.font
 font = ImageFont.truetype("Eight-Bit-Dragon.ttf", 8)
 
 # Control functions for the device
@@ -88,11 +89,6 @@ def show_message(device, command):
             draw.text( [xpos, 0], command[MESSAGE], fill=10, font=font)
         time.sleep(sd)
         xpos = xpos - 1
-    
-    #show_luma_message(device, command[MESSAGE],
-    #     fill=WHITE,
-    #     font=proportional(CP437_FONT),
-    #     scroll_delay=sd)
 
 def control_loop():
     toggle = False
