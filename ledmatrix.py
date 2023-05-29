@@ -89,7 +89,7 @@ def control_loop():
 
 # Flask functions
 @app.route("/state", methods=["POST", "GET"])
-def state():
+def state_endpoint():
     global state
     if request.method == 'POST':
         d = request.get_json()
@@ -103,7 +103,7 @@ def state():
         return {"state": state }
 
 @app.route("/message", methods=['POST'])
-def accept_message():
+def message_endpoint():
     command = request.get_json()
     if "message" not in command.keys():
       raise werkzeug.exceptions.BadRequest
