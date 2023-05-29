@@ -27,6 +27,9 @@ TIME = "time"
 OFF = "off"
 MESSAGE = "message"
 WHITE = "white"
+C_SCROLL_DIRECTION = "scroll_direction"
+C_LTR = "ltr"
+C_BTT = "btt"
 
 # Settings
 cascaded = 4
@@ -38,6 +41,7 @@ settings = {
   SCROLL_DELAY: 0.05,
   CONTRAST: 10,
   STATE: TIME
+  C_SCROLL_DIRECTION: C_LTR
 }
 
 # Inititalisation
@@ -83,12 +87,25 @@ def show_message(device, command):
     device.contrast(contrast)
 
     pixelLength = int(font.getlength(command[MESSAGE]))
-    xpos = 32
+    
+    scrollDirection = command.get(C_SCROLL_DIRECTION, settings[C_SCROLL_DIRECTION])
+    
+    if scrollDirection = C_LTR:
+      pos = [32,0]
+    else:
+      pos = [0,8]
+    
+    def nextPos(pos, dir=C_LTR):
+      if dir == C_LTR:
+        return (pos[0]-1, pos[1])
+      else:
+        return (pos[0], pos[1]-1)
+    
     for i in range(0, pixelLength+40):
         with canvas(device) as draw:
-            draw.text( [xpos, 0], command[MESSAGE], fill=10, font=font)
+            draw.text( pos, command[MESSAGE], fill=10, font=font)
         time.sleep(sd)
-        xpos = xpos - 1
+        pos = nextPos(pos, scrollDirection)
 
 def control_loop():
     toggle = False
