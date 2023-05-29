@@ -8,6 +8,7 @@ from datetime import datetime
 from flask import Flask, jsonify, request
 from queue import Queue, Empty
 from threading import Thread, Lock
+import werkzeug
 
 # Imports specific to the use case
 from luma.led_matrix.device import max7219
