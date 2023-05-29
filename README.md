@@ -1,10 +1,14 @@
 # Raspi Rest
 
-This repository provides a simple REST API for things attached to a Raspberry Pi. The API is called from Home Assistant.
+This repository contains code to provide simple REST APIs for things attached to multiple Raspberry Pis. The API is then used from Home Assistant.
+
+The basic idea for the server is to have two threads, and a queue of commands shared between them. One thread accepts incoming requests via flask, and the other communicates with the device(s).
 
 ## LED Matrix
 
-### Home Assistant
+![The LED matrix showing the time](img/led_matrix.jpg)
+
+If nothing happens, the LED matrix shows the time (can also be turned off entirely). In addition, the LED matrix is set as a notification service from home assistant, using [this integration](https://www.home-assistant.io/integrations/notify.rest/).
 
 
 
