@@ -18,18 +18,26 @@ from luma.core.legacy import show_message as show_luma_message
 from luma.core.legacy import text
 from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT
 
+# Constants
+SCROLL_DELAY = "scroll_delay"
+CONTRAST = "contrast"
+STATE = "state"
+TIME = "time"
+OFF = "off"
+MESSAGE = "message"
+WHITE = "white"
+
 # Settings
 cascaded = 4
 block_orientation = 90
 rotate = 1
 inreverse = True
 
-contrast_time = 2
-contrast_notification = 255
-
-default_scroll_delay = 0.05
-
-state = "time"
+settings = {
+  SCROLL_DELAY: 0.05,
+  CONTRAST: 10,
+  STATE: TIME
+}
 
 # Inititalisation
 app = Flask(__name__)
@@ -39,7 +47,7 @@ commands = Queue()
 statelock = Lock()
 
 # Add welcome message to message queue
-commands.put_nowait({"message": "Hello World", "scroll_delay": 0.01})
+commands.put_nowait({"message": "Hello World", SCROLL_DELAY: settings[SCROLL_DELAY]})
 
 serial = spi(port=0, device=0, gpio=noop())
 device = max7219(serial, cascaded=4, block_orientation=90,
@@ -50,11 +58,11 @@ def show_time(device, toggle):
     hours = datetime.now().strftime('%H')
     minutes = datetime.now().strftime('%M')
     toggle = not toggle
-    device.contrast(contrast_time)
+    device.contrast(settings[CONTRAST])
     with canvas(device) as draw:
-        text(draw, (0, 1), hours, fill="white", font=proportional(CP437_FONT))
-        text(draw, (15, 1), ":" if toggle else " ", fill="white", font=proportional(TINY_FONT))
-        text(draw, (17, 1), minutes, fill="white", font=proportional(CP437_FONT))
+        text(draw, (0, 1), hours, fill=WHITE, font=proportional(CP437_FONT))
+        text(draw, (15, 1), ":" if toggle else " ", fill=WHITE, font=proportional(TINY_FONT))
+        text(draw, (17, 1), minutes, fill=WHITE, font=proportional(CP437_FONT))
     time.sleep(0.5)
 
 def show_nothing(device):
@@ -63,11 +71,11 @@ def show_nothing(device):
 
 def show_message(device, command):
    
-    sd = float(command.get("scroll_delay", default_scroll_delay))
-    contrast = int(command.get("contrast", contrast_notification))
+    sd = float(command.get(SCROLL_DELAY, settings[SCROLL_DELAY]))
+    contrast = int(command.get(CONTRAST, settings[CONTRAST]))
     device.contrast(contrast)
-    show_luma_message(device, command["message"],
-         fill="white",
+    show_luma_message(device, command[MESSAGE],
+         fill=WHITE,
          font=proportional(CP437_FONT),
          scroll_delay=sd)
 
@@ -81,7 +89,7 @@ def control_loop():
             show_message(device, command)
         except Empty:
             statelock.acquire()
-            if state == "time":
+            if settings[STATE] == TIME:
                 show_time(device, toggle)
             else:
                 show_nothing(device)
@@ -89,24 +97,29 @@ def control_loop():
         
 
 # Flask functions
-@app.route("/state", methods=["POST", "GET"])
+@app.route("/set", methods=["POST", "GET"])
 def state_endpoint():
-    global state
+    global settings
     if request.method == 'POST':
         d = request.get_json()
-        newState = d.get("state", "off")
-        if newState in ["time", "off"]:
-            statelock.acquire()
-            state = newState
-            statelock.release()
-        return {"result": "ok"}
+        statelock.acquire()
+        for k in settings:
+          if k == STATE and d.get(k, settings[k]) not in [TIME, OFF]:
+            raise werkzeug.exceptions.BadRequest
+          if k == CONTRAST and ( d.get(k, settings[k]) < 0 or d.get(k, settings[k]) > 255)
+            raise werkzeug.exceptions.BadRequest
+          if k == SCROLL_DELAY and ( d.get(k, settings[k]) < 0 or d.get(k, settings[k]) > 1)
+            raise werkzeug.exceptions.BadRequest
+          settings[k] = d.get(k, settings[k])
+        statelock.release()
+        return d
     else:
-        return {"state": state }
+        return settings
 
 @app.route("/message", methods=['POST'])
 def message_endpoint():
     command = request.get_json()
-    if "message" not in command.keys():
+    if MESSAGE not in command.keys():
       raise werkzeug.exceptions.BadRequest
     commands.put_nowait(command)
     return {"result": "ok"}
