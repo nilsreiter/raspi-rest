@@ -82,9 +82,9 @@ def show_message(device, command):
     contrast = int(command.get(CONTRAST, settings[CONTRAST]))
     device.contrast(contrast)
 
-    pixelLength = int(fnt.getlength(command[MESSAGE]))
+    pixelLength = int(font.getlength(command[MESSAGE]))
     xpos = 32
-    for i in range(0, pixelLength+64):
+    for i in range(0, pixelLength+40):
         with canvas(device) as draw:
             draw.text( [xpos, 0], command[MESSAGE], fill=10, font=font)
         time.sleep(sd)
