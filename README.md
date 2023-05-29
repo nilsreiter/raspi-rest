@@ -11,6 +11,7 @@ The basic idea for the server is to have two threads, and a queue of commands sh
 If nothing happens, the LED matrix shows the time (can also be turned off entirely). In addition, the LED matrix is set as a notification service from home assistant, using [this integration](https://www.home-assistant.io/integrations/notify.rest/).
 
 
+To add the LED matrix as a notification target:
 
 ```yaml
 notify:
@@ -26,6 +27,7 @@ notify:
       "message": "{{ message }}"
 ```
 
+To add a switch that can turn on and off showing the time:
 
 ```yaml
 switch:
