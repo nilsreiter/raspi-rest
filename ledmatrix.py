@@ -23,6 +23,7 @@ from PIL import ImageFont
 SCROLL_DELAY = "scroll_delay"
 CONTRAST = "contrast"
 STATE = "state"
+STATUS_MESSAGE = "status_message"
 TIME = "time"
 OFF = "off"
 MESSAGE = "message"
@@ -30,18 +31,20 @@ WHITE = "white"
 C_SCROLL_DIRECTION = "scroll_direction"
 C_LTR = "ltr"
 C_BTT = "btt"
+REPEAT = "repeat"
 
 # Settings
-cascaded = 4
+cascaded = 8
 block_orientation = 90
-rotate = 1
+rotate = 0
 inreverse = True
 
 settings = {
     SCROLL_DELAY: 0.05,
     CONTRAST: 10,
     STATE: TIME,
-    C_SCROLL_DIRECTION: C_LTR
+    C_SCROLL_DIRECTION: C_LTR,
+    STATUS_MESSAGE: None,
 }
 
 # Inititalisation
@@ -55,11 +58,12 @@ statelock = Lock()
 commands.put_nowait({"message": "Hello World", SCROLL_DELAY: settings[SCROLL_DELAY]})
 
 serial = spi(port=0, device=0, gpio=noop())
-device = max7219(serial, cascaded=4, block_orientation=90,
-                 rotate=0, blocks_arranged_in_reverse_order=True)
+device = max7219(serial, cascaded=cascaded, block_orientation=block_orientation,
+                 rotate=rotate, blocks_arranged_in_reverse_order=inreverse)
 
-# Font from here: https://www.dafont.com/eight-bit-dragon.font
-font = ImageFont.truetype("Eight-Bit-Dragon.ttf", 8)
+font = ImageFont.truetype("fonts/FreePixel.ttf", 8)
+
+# font = proportional(CP437_FONT)
 
 # Control functions for the device
 def show_time(device, toggle):
@@ -71,9 +75,12 @@ def show_time(device, toggle):
         #draw.text((0,1), hours, fill=WHITE, font=font_437)
         #draw.text((font_437.getlength(hours), 1), ":" if toggle else " ", fill=WHITE, font=font_437)
         #draw.text((font_437.getlength(hours)+2,1), minutes, fill=WHITE, font=font_437)
-        text(draw, (0, 1), hours, fill=WHITE, font=proportional(CP437_FONT))
-        text(draw, (15, 1), ":" if toggle else " ", fill=WHITE, font=proportional(TINY_FONT))
-        text(draw, (17, 1), minutes, fill=WHITE, font=proportional(CP437_FONT))
+        text(draw, (0, 0), hours, fill=WHITE, font=proportional(CP437_FONT))
+        text(draw, (15, 0), ":" if toggle else " ", fill=WHITE, font=proportional(TINY_FONT))
+        text(draw, (17, 0), minutes, fill=WHITE, font=proportional(CP437_FONT))
+        if settings[STATUS_MESSAGE]:
+            pixelLength = int(font.getlength(settings[STATUS_MESSAGE]))
+            draw.text((32 + ((32-pixelLength)/2), 1), settings[STATUS_MESSAGE], fill=1, font=font) #proportional(CP437_FONT))
     time.sleep(0.5)
 
 def show_nothing(device):
@@ -93,7 +100,7 @@ def show_message(device, command):
     if scrollDirection == C_BTT:
         pos = [0,8]
     else:
-        pos = [32,0]
+        pos = [cascaded*8,0]
 
     
     def nextPos(pos, dir=C_LTR):
@@ -105,13 +112,19 @@ def show_message(device, command):
     if scrollDirection == C_BTT:
         maxIter = 17
     else:
-        maxIter = pixelLength+40
+        maxIter = pixelLength+cascaded*8
+
+    text = "+++ " + command[MESSAGE].strip() + " +++"
     for i in range(0, maxIter):
         with canvas(device) as draw:
-            draw.text( pos, command[MESSAGE], fill=10, font=font)
+            draw.text( pos, text, fill=10, font=font)
         time.sleep(sd)
         pos = nextPos(pos, scrollDirection)
 
+    if int(command.get(REPEAT, 0)) > 0:
+        command[REPEAT] = int(command[REPEAT]) - 1
+        commands.put_nowait(command)
+        
 def control_loop():
     toggle = False
     global state
@@ -145,6 +158,7 @@ def state_endpoint():
             raise werkzeug.exceptions.BadRequest
           settings[k] = d.get(k, settings[k])
         statelock.release()
+        # print(settings)
         return d
     else:
         return settings
