@@ -15,7 +15,7 @@ from luma.led_matrix.device import max7219
 from luma.core.render import canvas
 from luma.core.interface.serial import spi, noop
 from luma.core.legacy import show_message as show_luma_message
-from luma.core.legacy import text
+from luma.core.legacy import text, textsize
 from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT
 from PIL import ImageFont
 
@@ -61,8 +61,9 @@ serial = spi(port=0, device=0, gpio=noop())
 device = max7219(serial, cascaded=cascaded, block_orientation=block_orientation,
                  rotate=rotate, blocks_arranged_in_reverse_order=inreverse)
 
-font = ImageFont.truetype("fonts/FreePixel.ttf", 8)
-
+# font = ImageFont.truetype("fonts/FreePixel.ttf", 8)
+font = ImageFont.truetype("fonts/dogicapixelbold.ttf", 8)
+# font = ImageFont.truetype("fonts/SF-Compact-Display-Regular.ttf", 8)
 # font = proportional(CP437_FONT)
 
 # Control functions for the device
@@ -79,10 +80,17 @@ def show_time(device, toggle):
         text(draw, (15, 0), ":" if toggle else " ", fill=WHITE, font=proportional(TINY_FONT))
         text(draw, (17, 0), minutes, fill=WHITE, font=proportional(CP437_FONT))
         if settings[STATUS_MESSAGE]:
-            pixelLength = int(font.getlength(settings[STATUS_MESSAGE]))
-            draw.text((32 + ((32-pixelLength)/2), 1), settings[STATUS_MESSAGE], fill=1, font=font) #proportional(CP437_FONT))
+            if "°" in settings[STATUS_MESSAGE] or "ø" in settings[STATUS_MESSAGE]:
+                fnt=proportional(CP437_FONT)
+                settings[STATUS_MESSAGE] = settings[STATUS_MESSAGE].replace("°", "ø")
+                pixelLength = textsize(settings[STATUS_MESSAGE], fnt)[0] #(len(settings[STATUS_MESSAGE]))*8-4
+                text(draw, (32 + (32-pixelLength), 0), settings[STATUS_MESSAGE], fill=1, font=fnt)
+            else:
+                pixelLength = int(font.getlength(settings[STATUS_MESSAGE]))
+                text(draw, (32 + ((32-pixelLength)/2), 0), settings[STATUS_MESSAGE], fill=1, font=font)
     time.sleep(0.5)
 
+ 
 def show_nothing(device):
     device.clear()
     time.sleep(0.5)
@@ -93,14 +101,17 @@ def show_message(device, command):
     contrast = int(command.get(CONTRAST, settings[CONTRAST]))
     device.contrast(contrast)
 
-    pixelLength = int(font.getlength(command[MESSAGE]))
-    
+    try:
+        pixelLength = int(font.getlength(command[MESSAGE]))
+    except AttributeError:
+        pixelLength = len(command[MESSAGE])*8
+        
     scrollDirection = command.get(C_SCROLL_DIRECTION, settings[C_SCROLL_DIRECTION])
     
     if scrollDirection == C_BTT:
         pos = [0,8]
     else:
-        pos = [cascaded*8,0]
+        pos = [cascaded*8,1]
 
     
     def nextPos(pos, dir=C_LTR):
@@ -114,9 +125,10 @@ def show_message(device, command):
     else:
         maxIter = pixelLength+cascaded*8
 
-    text = "+++ " + command[MESSAGE].strip() + " +++"
+    text = "+ " + command[MESSAGE].strip() + " +"
     for i in range(0, maxIter):
         with canvas(device) as draw:
+            # text(draw, pos, text, fill=10, font=font)
             draw.text( pos, text, fill=10, font=font)
         time.sleep(sd)
         pos = nextPos(pos, scrollDirection)
